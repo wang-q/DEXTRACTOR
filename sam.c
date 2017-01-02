@@ -139,14 +139,14 @@ samFile *sam_open(char *name)
     goto error;
 
   if (strcmp(name,"-") == 0)
-    ptr = gzdopen(fileno(stdin),"r");
+    *ptr = gzdopen(fileno(stdin),"r");
   else
-    ptr = gzopen(name,"r");
+    *ptr = gzopen(name,"r");
   if (ptr == NULL)
     goto error;
-  gzbuffer(ptr,0x10000);
+  gzbuffer(*ptr,0x10000);
 
-  if (gzdirect(ptr))
+  if (gzdirect(*ptr))
     sf->format = sam;
   else
     sf->format = bam;
@@ -161,22 +161,22 @@ error:
   free(sf->name);
   free(sf);
   if (ptr != NULL)
-    gzclose(ptr);
+    gzclose(*ptr);
   return (NULL);
 }
 
 int sam_eof(samFile *sf)
 { int c;
 
-  c = gzgetc(sf->ptr);
-  gzungetc(c,sf->ptr);
+  c = gzgetc(*(sf->ptr));
+  gzungetc(c,*(sf->ptr));
   return (c < 0);
 }
 
 int sam_close(samFile *sf)
 { int ret;
 
-  ret = gzclose(sf->ptr);
+  ret = gzclose(*(sf->ptr));
   free(sf->name);
   free(sf);
   return (ret != Z_OK);
@@ -189,7 +189,7 @@ static int sam_getline(samFile *sf, int clen)
 
   if (make_room(8192))
     return (-1);
-  while (gzgets(file,(char *) (data+clen),dmax-clen) != NULL)
+  while (gzgets(*file,(char *) (data+clen),dmax-clen) != NULL)
     { clen += strlen((char *) (data+clen));
       if (data[clen-1] == '\n')
         return (clen);
@@ -200,7 +200,7 @@ static int sam_getline(samFile *sf, int clen)
           return (-1);
         }
     }
-  if (gzeof(file))
+  if (gzeof(*file))
     return (0);
   else
     { fprintf(stderr,"%s: Could not get a line from %s\n",Prog_Name,sf->name);
@@ -225,7 +225,7 @@ static int bam_header_read(samFile *sf)
   { int  ret;
     char buf[4];
 
-    ret = gzread(file, buf, 4);
+    ret = gzread(*file, buf, 4);
     if (ret != 4 || strncmp(buf, "BAM\1", 4) != 0)
       { fprintf(stderr, "%s: Corrupted BAM header\n",Prog_Name);
         return (1);
@@ -234,20 +234,20 @@ static int bam_header_read(samFile *sf)
 
   // read plain text
 
-  if (gzread(file, &tlen, 4) != 4)
+  if (gzread(*file, &tlen, 4) != 4)
     goto IO_error;
   if (sf->is_big)
     flip_int(&tlen);
 
   if (make_room(tlen+1))
     return (1);
-  if (gzread(file, data, tlen) != tlen)
+  if (gzread(*file, data, tlen) != tlen)
     goto IO_error;
   data[tlen++] = 0;              // make sure it is NULL terminated
 
   //  read through number of reference sequences
 
-  if (gzread(file, &ncnt, 4) != 4)
+  if (gzread(*file, &ncnt, 4) != 4)
     goto IO_error;
   if (sf->is_big)
     flip_int(&ncnt);
@@ -257,7 +257,7 @@ static int bam_header_read(samFile *sf)
   // read through reference sequence names and lengths
 
   for (i = 0; i < ncnt; i++)
-    { if (gzread(file, &nlen, 4) != 4)
+    { if (gzread(*file, &nlen, 4) != 4)
         goto IO_error;
       if (sf->is_big)
         flip_int(&nlen);
@@ -265,7 +265,7 @@ static int bam_header_read(samFile *sf)
         goto corrupted;
       if (make_room(tlen+nlen+5))
         return (1);
-      if (gzread(file, data+(tlen+1), nlen+4) != nlen+4)
+      if (gzread(*file, data+(tlen+1), nlen+4) != nlen+4)
         goto IO_error;
     }
   return (0);
@@ -284,10 +284,10 @@ static int sam_header_read(samFile *sf)
 
   dlen = 0;
   while (1)
-    { c = gzgetc(sf->ptr);
+    { c = gzgetc(*(sf->ptr));
       if (c == EOF)
         break;
-      gzungetc(c,sf->ptr);
+      gzungetc(c,*(sf->ptr));
       if (c != '@')
         break;
       dlen = sam_getline(sf,dlen);
@@ -330,7 +330,7 @@ static char  IUPAC_2_DNA[256] =
     'a', 'a', 'c', 'c', 'a', 'a', 'a', 'g',   'a', 'a', 'a', 'g', 'a', 'a', 'a', 'a',
     'a', 'a', 'a', 'c', 't', 'a', 'a', 'a',   'a', 'c', 'a', 'a', 'a', 'a', 'a', 'a',
   };
- 
+
 
 static char *SEQ_CONVERT;  //  1 of 4 tables abave: sam vs. bam, numberic vs. alpha
 static int   ARR_CONVERT;
@@ -503,7 +503,7 @@ static void flip_auxilliary(uint8 *s, uint8 *e)
           }
           break;
        }
-    } 
+    }
 }
 
 static int bam_record_read(samFile *sf, int status)
@@ -516,7 +516,7 @@ static int bam_record_read(samFile *sf, int status)
   { int    ret;      //  read next block
     uint32 x[9];
 
-    if ((ret = gzread(sf->ptr, x, 36)) != 36)
+    if ((ret = gzread(*(sf->ptr), x, 36)) != 36)
       { if (ret == 0)
           return (0);   // normal end-of-file
         else
@@ -549,7 +549,7 @@ static int bam_record_read(samFile *sf, int status)
     if (make_room(ldata))
       return (-1);
 
-    if (gzread(sf->ptr, data, ldata) != ldata)
+    if (gzread(*(sf->ptr), data, ldata) != ldata)
       { fprintf(stderr,"%s: Unexpected end of input file\n",Prog_Name);
         return (-1);
       }
@@ -557,7 +557,7 @@ static int bam_record_read(samFile *sf, int status)
     if (sf->is_big)
       flip_auxilliary(data+aux, data+ldata);
   }
-  
+
   { uint8 *t;     //  Load header and sequence from required fields
     int    i, e;
     char  *seq, *eoh;
@@ -578,7 +578,7 @@ static int bam_record_read(samFile *sf, int status)
     if (eoh != NULL)
       *eoh = 0;
 
-    t = data + (lname + (lcigar<<2)); 
+    t = data + (lname + (lcigar<<2));
     for (e = i = 0; i < lseq-1; i += 2, e++)
       { seq[i]   = SEQ_CONVERT[t[e] >> 4];
         seq[i+1] = SEQ_CONVERT[t[e] & 0xf];
@@ -716,7 +716,7 @@ for (i = 0; i < len; i++, p += size)	\
       else
         { size = bam_tag_size[p[2]];
           if (size <= 8)
-            p += 3+size; 
+            p += 3+size;
           else if (size == 9)
             p += strlen(((char *) p)+3) + 4;
           else
@@ -805,7 +805,7 @@ static int sam_record_read(samFile *sf, int status)
     qv[cnt] = *p++;										\
   CHECK ( *p == ',' || cnt < qlen, "quality stream has different length than read")		\
   CHECK ( *p != '\t', "Cannot parse quality stream width values")				\
-} 
+}
 
   { char *q, *arr;       //  Get zm, qs, qe, rq, sn, and pw from auxilliary tags
     int   x, cnt;
@@ -870,7 +870,7 @@ static int sam_record_read(samFile *sf, int status)
           for (cnt = 0; *p == ',' && cnt < 2; cnt++)
             { x = strtol(q=p+1,&p,0);
               CHECK( p == q, "Cannot parse barcode value")
-              theR.bc[cnt] = x; 
+              theR.bc[cnt] = x;
             }
           CHECK ( *p == ',' || cnt < 2, "more than 2 barcode values?")
           CHECK ( *p != '\t' && *p != '\n', "Cannot parse barcode values")
@@ -886,7 +886,7 @@ static int sam_record_read(samFile *sf, int status)
               CHECK( p == q, "Cannot parse pulse width value")
               if (x >= 5)
                 x = 4;
-              arr[cnt] = x + ARR_CONVERT; 
+              arr[cnt] = x + ARR_CONVERT;
             }
           CHECK ( *p == ',' || cnt < qlen, "pulse width arraw has different length than read")
           CHECK ( *p != '\t' && *p != '\n', "Cannot parse pulse width values")
