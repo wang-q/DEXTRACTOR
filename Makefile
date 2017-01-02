@@ -1,37 +1,37 @@
-HAVE_ZLIB = 
-HAVE_HDF5 =
+-include settings.mk
 
 DEST_DIR  = ~/bin
 
-CFLAGS = -O3 -Wall -Wextra -Wno-unused-result -fno-strict-aliasing
+CFLAGS = -O2 -Wall -Wno-unused-result -fno-strict-aliasing
+LDFLAGS = -I$(HAVE_HDF5)/include -I$(HAVE_ZLIB)/include -L$(HAVE_HDF5)/lib -L$(HAVE_ZLIB)/lib -lhdf5 -lz
 
 ALL = dextract dexta undexta dexar undexar dexqv undexqv dex2DB
 
 all: $(ALL)
 
 dextract: dextract.c sam.c bax.c expr.c expr.h bax.h DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -I$(HAVE_HDF5)/include -I$(HAVE_ZLIB)/include -L$(HAVE_HDF5)/lib -L$(HAVE_ZLIB)/lib -o dextract dextract.c sam.c bax.c expr.c DB.c QV.c -lhdf5 -lz
+	gcc $(CFLAGS) dextract.c sam.c bax.c expr.c DB.c QV.c $(LDFLAGS) -o $@
 
 dexta: dexta.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o dexta dexta.c DB.c QV.c
+	gcc $(CFLAGS) dexta.c DB.c QV.c -o $@
 
 undexta: undexta.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o undexta undexta.c DB.c QV.c
+	gcc $(CFLAGS) undexta.c DB.c QV.c -o $@
 
 dexar: dexar.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o dexar dexar.c DB.c QV.c
+	gcc $(CFLAGS) dexar.c DB.c QV.c -o $@
 
 undexar: undexar.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o undexar undexar.c DB.c QV.c
+	gcc $(CFLAGS) undexar.c DB.c QV.c -o $@
 
 dexqv: dexqv.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o dexqv dexqv.c DB.c QV.c
+	gcc $(CFLAGS) dexqv.c DB.c QV.c -o $@
 
 undexqv: undexqv.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o undexqv undexqv.c DB.c QV.c
+	gcc $(CFLAGS) undexqv.c DB.c QV.c -o $@
 
 dex2DB: dex2DB.c sam.c bax.c DB.c QV.c bax.h DB.h QV.h
-	gcc $(CFLAGS) -I$(HAVE_HDF5)/include -I$(HAVE_ZLIB)/include -L$(HAVE_HDF5)/lib -L$(HAVE_ZLIB)/lib -o dex2DB dex2DB.c sam.c bax.c DB.c QV.c -lhdf5 -lz
+	gcc $(CFLAGS) dex2DB.c sam.c bax.c DB.c QV.c $(LDFLAGS) -o $@
 
 clean:
 	rm -f $(ALL)
