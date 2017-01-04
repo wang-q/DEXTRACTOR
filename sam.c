@@ -217,7 +217,8 @@ static int sam_getline(samFile *sf, int clen) {
 
 static int bam_header_read(samFile *sf) {
     gzFile *file = sf->ptr;
-    unsigned int nlen, ncnt, tlen;
+    unsigned int nlen, tlen;
+    int ncnt;
     int i;
 
     // read "BAM\1"
