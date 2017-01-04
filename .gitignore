@@ -1,3 +1,13 @@
+# Executables
+/dex2DB
+/dexar
+/dexqv
+/dexta
+/dextract
+/undexar
+/undexqv
+/undexta
+
 # IDE
 .idea/
 cmake-build-debug/
